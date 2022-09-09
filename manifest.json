@@ -1,0 +1,16 @@
+{
+
+  "manifest_version": 2,
+  "name": "Adhan",
+  "version": "1.0",
+  
+  "permissions": ["storage"],
+  
+  "description": "Adhan times.",
+  
+  "browser_action": {
+    "default_title": "Adhan",
+    "default_icon": "icon.png",
+    "default_popup": "popup.html"
+  }
+}
