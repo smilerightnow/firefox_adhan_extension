@@ -23,21 +23,34 @@ function diff(start, end) {
     return (hours <= 9 ? "0" : "") + hours + ":" + (minutes <= 9 ? "0" : "") + minutes;
 }
 
-// GET COORDINATES FROM IP
-browser.storage.local.get("coordinates").then(function(result){
-	if(!("coordinates" in result)){
+// GET coordinates_api FROM IP
+browser.storage.local.get("coordinates_api").then(function(result){
+	if(!("coordinates_api" in result)){
 		fetch (`http://ip-api.com/json/`)
 		.then(res => res.json())
 		.then(function process(data){
-			browser.storage.local.set({"coordinates":[data["lat"], data["lon"]]})
+			if("lat" in data) browser.storage.local.set({"coordinates_api":[data["lat"], data["lon"]]})
 		})
 	}
 })
 //
 
-browser.storage.local.get(["Adhan_data", "coordinates"]).then(function(result){
+browser.storage.local.get(["Adhan_data", "coordinates_api", "coordinates_option"]).then(function(result){
+	var lat; var lon;
+	if(!("coordinates_api" in result) && !("coordinates_option" in result)){
+		adhan_element.innerHTML = 'You need to set the coordinates in the options page.'
+	} else {
+		if("coordinates_option" in result){
+			lat = result["coordinates_option"][0];
+			lon = result["coordinates_option"][1];
+		} else {
+			lat = result["coordinates_api"][0];
+			lon = result["coordinates_api"][1];
+		}
+	}
+	
 	if(!("Adhan_data" in result)){
-		fetch (`http://api.aladhan.com/v1/timings/${date}?latitude=${result["coordinates"][0]}&longitude=${result["coordinates"][1]}&method=4`)
+		fetch (`http://api.aladhan.com/v1/timings/${date}?latitude=${lat}&longitude=${lon}&method=4`)
 		.then(res => res.json())
 		.then(function process(data){
 			let msg = `
@@ -64,7 +77,7 @@ Isha: ${data["data"]["timings"]["Isha"]} <br>
 		}
 	else {
 		if (result["Adhan_data"][0] != date){
-			fetch (`http://api.aladhan.com/v1/timings/${date}?latitude=${result["coordinates"][0]}&longitude=${result["coordinates"][1]}&method=4`)
+			fetch (`http://api.aladhan.com/v1/timings/${date}?latitude=${lat}&longitude=${lon}&method=4`)
 			.then(res => res.json())
 			.then(function process(data){
 				let msg = `
@@ -99,7 +112,7 @@ Isha: ${data["data"]["timings"]["Isha"]} <br>
 			if (i+1 == timings.length) text = diff(time_now, timings[0])
 			else text = diff(time_now, timings[i+1])
 			
-			console.log("time_now:", time_now, ",timings:", result["Adhan_data"][2], ",index of time_now in timings:", i, ",remaining until next adhan:", text, ",coordinates:", result["coordinates"])
+			console.log("time_now:", time_now, ",timings:", result["Adhan_data"][2], ",index of time_now in timings:", i, ",remaining until next adhan:", text, ",coordinates_api:", result["coordinates_api"])
 			
 			////
 			adhan_element.innerHTML = "Until next Adhan: "+ text +"<br><br>" + result["Adhan_data"][1]
