@@ -4,7 +4,7 @@ var date = new Date().toLocaleDateString(undefined, {year: 'numeric', month: '2-
 date = date.replaceAll("/", "-")
 
 let d = new Date(); 
-let time_now = `${d.getHours()}:${d.getMinutes()}`;
+let time_now = `${(d.getHours() <= 9 ? "0" : "") + d.getHours()}:${(d.getMinutes() <= 9 ? "0" : "") + d.getMinutes()}`;
 
 function isEmpty(obj) {
     return Object.keys(obj).length === 0;
@@ -24,7 +24,7 @@ function diff(start, end) {
     if (hours < 0)
        hours = hours + 24;
 
-    return [hours, minutes];
+    return (hours <= 9 ? "0" : "") + hours + ":" + (minutes <= 9 ? "0" : "") + minutes;
 }
 
 browser.storage.local.get("Adhan_data").then(function(result){
@@ -52,7 +52,7 @@ Isha: ${data["data"]["timings"]["Isha"]} <br>
 			else text = diff(time_now, timings[i+1])
 			////
 			
-			adhan_element.innerHTML = "Until next Adhan: "+ text[0]+":"+text[1] +"<br><br>" + msg
+			adhan_element.innerHTML = "Until next Adhan: "+ text +"<br><br>" + msg
 			})
 		}
 	else {
@@ -78,7 +78,7 @@ Isha: ${data["data"]["timings"]["Isha"]} <br>
 				else text = diff(time_now, timings[i+1])
 				////
 				
-				adhan_element.innerHTML = "Until next Adhan: "+ text[0]+":"+text[1] +"<br><br>" + msg
+				adhan_element.innerHTML = "Until next Adhan: "+ text +"<br><br>" + msg
 				})
 			}
 		else {
@@ -91,9 +91,11 @@ Isha: ${data["data"]["timings"]["Isha"]} <br>
 			let text = "";
 			if (i+1 == timings.length) text = diff(time_now, timings[0])
 			else text = diff(time_now, timings[i+1])
-			////
 			
-			adhan_element.innerHTML = "Until next Adhan: "+ text[0]+":"+text[1] +"<br><br>" + result["Adhan_data"][1]
+			console.log("time_now:", time_now, ",timings:", timings, ",index of time_now in timings:", i, ",remaining until next adhan:", text)
+			
+			////
+			adhan_element.innerHTML = "Until next Adhan: "+ text +"<br><br>" + result["Adhan_data"][1]
 			}
 		}
 })
