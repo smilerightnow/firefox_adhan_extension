@@ -1,14 +1,10 @@
 
 var adhan_element = document.querySelector("#adhan");
-var date = new Date().toLocaleDateString(undefined, {year: 'numeric', month: '2-digit', day: '2-digit'});
+var date = new Date().toLocaleDateString("fr", {year: 'numeric', month: '2-digit', day: '2-digit'});
 date = date.replaceAll("/", "-")
 
 let d = new Date(); 
 let time_now = `${(d.getHours() <= 9 ? "0" : "") + d.getHours()}:${(d.getMinutes() <= 9 ? "0" : "") + d.getMinutes()}`;
-
-function isEmpty(obj) {
-    return Object.keys(obj).length === 0;
-}
 
 function diff(start, end) {
     start = start.split(":");
@@ -27,10 +23,21 @@ function diff(start, end) {
     return (hours <= 9 ? "0" : "") + hours + ":" + (minutes <= 9 ? "0" : "") + minutes;
 }
 
-browser.storage.local.get("Adhan_data").then(function(result){
+// GET COORDINATES FROM IP
+browser.storage.local.get("coordinates").then(function(result){
+	if(!("coordinates" in result)){
+		fetch (`http://ip-api.com/json/`)
+		.then(res => res.json())
+		.then(function process(data){
+			browser.storage.local.set({"coordinates":[data["lat"], data["lon"]]})
+		})
+	}
+})
+//
 
-	if(isEmpty(result)){
-		fetch (`http://api.aladhan.com/v1/timings/${date}?latitude=36.695015617995786&longitude=2.8598153928893604&method=4`)
+browser.storage.local.get(["Adhan_data", "coordinates"]).then(function(result){
+	if(!("Adhan_data" in result)){
+		fetch (`http://api.aladhan.com/v1/timings/${date}?latitude=${result["coordinates"][0]}&longitude=${result["coordinates"][1]}&method=4`)
 		.then(res => res.json())
 		.then(function process(data){
 			let msg = `
@@ -40,10 +47,10 @@ Asr: ${data["data"]["timings"]["Asr"]} <br>
 Maghrib: ${data["data"]["timings"]["Maghrib"]} <br>
 Isha: ${data["data"]["timings"]["Isha"]} <br>	
 `
-			let timings = [data["data"]["timings"]["Fajr"], data["data"]["timings"]["Dhuhr"], data["data"]["timings"]["Asr"], data["data"]["timings"]["Maghrib"], data["data"]["timings"]["Isha"]]
-			browser.storage.local.set({"Adhan_data":[date, msg, timings]})
+			browser.storage.local.set({"Adhan_data":[date, msg, [data["data"]["timings"]["Fajr"], data["data"]["timings"]["Dhuhr"], data["data"]["timings"]["Asr"], data["data"]["timings"]["Maghrib"], data["data"]["timings"]["Isha"]]]})
 			
 			////
+			let timings = [data["data"]["timings"]["Fajr"], data["data"]["timings"]["Dhuhr"], data["data"]["timings"]["Asr"], data["data"]["timings"]["Maghrib"], data["data"]["timings"]["Isha"]]
 			timings.push(time_now);
 			timings.sort(function(a, b){return parseInt(a.replace(":","")) - parseInt(b.replace(":",""))});
 			let i = timings.indexOf(time_now);
@@ -57,19 +64,19 @@ Isha: ${data["data"]["timings"]["Isha"]} <br>
 		}
 	else {
 		if (result["Adhan_data"][0] != date){
-			fetch (`http://api.aladhan.com/v1/timings/${date}?latitude=36.695015617995786&longitude=2.8598153928893604&method=4`)
+			fetch (`http://api.aladhan.com/v1/timings/${date}?latitude=${result["coordinates"][0]}&longitude=${result["coordinates"][1]}&method=4`)
 			.then(res => res.json())
 			.then(function process(data){
 				let msg = `
-	Fajr: ${data["data"]["timings"]["Fajr"]} <br>
-	Dhuhr: ${data["data"]["timings"]["Dhuhr"]} <br>
-	Asr: ${data["data"]["timings"]["Asr"]} <br>
-	Maghrib: ${data["data"]["timings"]["Maghrib"]} <br>
-	Isha: ${data["data"]["timings"]["Isha"]} <br>	
-	`
-				let timings = [data["data"]["timings"]["Fajr"], data["data"]["timings"]["Dhuhr"], data["data"]["timings"]["Asr"], data["data"]["timings"]["Maghrib"], data["data"]["timings"]["Isha"]]
-				browser.storage.local.set({"Adhan_data":[date, msg, timings]})
+Fajr: ${data["data"]["timings"]["Fajr"]} <br>
+Dhuhr: ${data["data"]["timings"]["Dhuhr"]} <br>
+Asr: ${data["data"]["timings"]["Asr"]} <br>
+Maghrib: ${data["data"]["timings"]["Maghrib"]} <br>
+Isha: ${data["data"]["timings"]["Isha"]} <br>	
+`
+				browser.storage.local.set({"Adhan_data":[date, msg, [data["data"]["timings"]["Fajr"], data["data"]["timings"]["Dhuhr"], data["data"]["timings"]["Asr"], data["data"]["timings"]["Maghrib"], data["data"]["timings"]["Isha"]]]})
 				////
+				let timings = [data["data"]["timings"]["Fajr"], data["data"]["timings"]["Dhuhr"], data["data"]["timings"]["Asr"], data["data"]["timings"]["Maghrib"], data["data"]["timings"]["Isha"]]
 				timings.push(time_now);
 				timings.sort(function(a, b){return parseInt(a.replace(":","")) - parseInt(b.replace(":",""))});
 				let i = timings.indexOf(time_now);
@@ -84,7 +91,7 @@ Isha: ${data["data"]["timings"]["Isha"]} <br>
 		else {
 			console.log("cached")
 			////
-			var timings = result["Adhan_data"][2]
+			var timings = result["Adhan_data"][2].slice()
 			timings.push(time_now);
 			timings.sort(function(a, b){return parseInt(a.replace(":","")) - parseInt(b.replace(":",""))});
 			let i = timings.indexOf(time_now);
@@ -92,7 +99,7 @@ Isha: ${data["data"]["timings"]["Isha"]} <br>
 			if (i+1 == timings.length) text = diff(time_now, timings[0])
 			else text = diff(time_now, timings[i+1])
 			
-			console.log("time_now:", time_now, ",timings:", timings, ",index of time_now in timings:", i, ",remaining until next adhan:", text)
+			console.log("time_now:", time_now, ",timings:", result["Adhan_data"][2], ",index of time_now in timings:", i, ",remaining until next adhan:", text, ",coordinates:", result["coordinates"])
 			
 			////
 			adhan_element.innerHTML = "Until next Adhan: "+ text +"<br><br>" + result["Adhan_data"][1]
